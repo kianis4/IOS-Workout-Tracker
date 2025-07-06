@@ -1,0 +1,5 @@
+[
+  { "name": "Bench Press",  "muscle": "chest" },
+  { "name": "Barbell Row",  "muscle": "back"  },
+  { "name": "Back Squat",   "muscle": "legs"  }
+]
