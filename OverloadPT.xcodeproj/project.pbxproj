@@ -15,6 +15,7 @@
 		3FAFBBFF2E1B371B00FB855D /* ProgressionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAFBBFE2E1B371B00FB855D /* ProgressionView.swift */; };
 		3FAFBC012E1B373500FB855D /* ProgressChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAFBC002E1B373500FB855D /* ProgressChartView.swift */; };
 		3FAFBC032E1B374E00FB855D /* ExercisePickerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAFBC022E1B374E00FB855D /* ExercisePickerSection.swift */; };
+		3FAFBC062E1B501A00FB855D /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 3FAFBC052E1B501200FB855D /* README.md */; };
 		3FBA215D2DFE7E20009517A0 /* TemplatePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FBA215C2DFE7E20009517A0 /* TemplatePickerView.swift */; };
 		3FDF0D362DFE28EA001981DB /* OverloadPTApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FDF0D322DFE28EA001981DB /* OverloadPTApp.swift */; };
 		3FDF0D372DFE28EA001981DB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3FDF0D2F2DFE28EA001981DB /* Assets.xcassets */; };
@@ -66,6 +67,7 @@
 		3FAFBBFE2E1B371B00FB855D /* ProgressionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionView.swift; sourceTree = "<group>"; };
 		3FAFBC002E1B373500FB855D /* ProgressChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressChartView.swift; sourceTree = "<group>"; };
 		3FAFBC022E1B374E00FB855D /* ExercisePickerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePickerSection.swift; sourceTree = "<group>"; };
+		3FAFBC052E1B501200FB855D /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		3FBA215C2DFE7E20009517A0 /* TemplatePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatePickerView.swift; sourceTree = "<group>"; };
 		3FDF0CFF2DFE27B6001981DB /* OverloadPT.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OverloadPT.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3FDF0D0E2DFE27B8001981DB /* OverloadPTTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OverloadPTTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -167,6 +169,7 @@
 				3FDF0D1B2DFE27B8001981DB /* OverloadPTUITests */,
 				3FDF0D002DFE27B6001981DB /* Products */,
 				3FDF0D332DFE28EA001981DB /* OverloadPT */,
+				3FAFBC052E1B501200FB855D /* README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -428,6 +431,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3FAFBC062E1B501A00FB855D /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
