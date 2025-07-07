@@ -179,7 +179,7 @@ struct WorkoutForDayView: View {
                     .cornerRadius(12)
                     
                     // Exercises Section (placeholder for now)
-                    WorkoutLogSection(splitDay: splitDay)
+                    WorkoutLogSection(splitDay: splitDay, selectedDate: date)
                 } else {
                     RestDayView()
                 }
@@ -205,8 +205,11 @@ struct WorkoutForDayView: View {
 
 struct WorkoutLogSection: View {
     let splitDay: SplitDay
+    let selectedDate: Date
+    @Environment(\.modelContext) private var context // Add this line
     @State private var showExercisePicker = false
     @State private var selectedExercise: Exercise?
+    @State private var selectedProgressionData: ProgressionData?
     @State private var showLogSheet = false
     @State private var refreshTrigger = false
     
@@ -241,12 +244,17 @@ struct WorkoutLogSection: View {
                 // Display exercises with log button
                 ForEach(splitDay.exercises) { exercise in
                     Button {
+                        // Load progression data before showing sheet
+                        selectedProgressionData = loadProgressionData(for: exercise)
                         selectedExercise = exercise
                         showLogSheet = true
                     } label: {
-                        ExerciseLogView(exercise: exercise)
-                            .contentShape(Rectangle())
-                            .id("\(exercise.id)-\(refreshTrigger)")
+                        ExerciseLogView(
+                            exercise: exercise,
+                            selectedDate: selectedDate
+                        )
+                        .contentShape(Rectangle())
+                        .id("\(exercise.id)-\(refreshTrigger)")
                     }
                     .buttonStyle(.plain)
                 }
@@ -264,36 +272,138 @@ struct WorkoutLogSection: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showLogSheet, onDismiss: {
-            // Force refresh when log sheet is dismissed
             refreshTrigger.toggle()
         }) {
             if let exercise = selectedExercise {
-                ExerciseLogSheetView(exercise: exercise)
+                ExerciseLogSheetView(
+                    exercise: exercise,
+                    selectedDate: selectedDate,
+                    progressionData: selectedProgressionData
+                )
             }
         }
     }
+    
+    private func loadProgressionData(for exercise: Exercise) -> ProgressionData? {
+        do {
+            // Use the context from the environment instead of ModelContainer.shared
+            let descriptor = FetchDescriptor<SetEntry>()
+            let allSets = try context.fetch(descriptor)
+            
+            let currentDayStart = Calendar.current.startOfDay(for: selectedDate)
+            let exerciseSets = allSets.filter { set in
+                set.exercise.id == exercise.id &&
+                Calendar.current.startOfDay(for: set.date) < currentDayStart
+            }
+            
+            // Rest of the function remains unchanged
+            let groupedByDay = Dictionary(grouping: exerciseSets) { set in
+                Calendar.current.startOfDay(for: set.date)
+            }
+            
+            let sortedDays = groupedByDay.keys.sorted(by: >)
+            
+            for day in sortedDays {
+                guard let daySets = groupedByDay[day] else { continue }
+                
+                if daySets.count >= exercise.targetSets {
+                    let weights = daySets.map { $0.weight }
+                    let maxWeight = weights.max() ?? 0
+                    
+                    if maxWeight > 0 {
+                        let daysAgo = Calendar.current.dateComponents([.day], from: day, to: currentDayStart).day ?? 0
+                        let isLowerBody = exercise.muscle == .legs
+                        let increment = isLowerBody ? 5.0 : 2.5
+                        let recommendedWeight = maxWeight + increment
+                        
+                        return ProgressionData(
+                            lastWeight: maxWeight,
+                            recommendedWeight: recommendedWeight,
+                            lastWorkoutDate: day,
+                            daysAgo: daysAgo
+                        )
+                    }
+                }
+            }
+            
+            return nil
+        } catch {
+            print("Error loading progression data: \(error)")
+            return nil
+        }
+    }
+    // Helper function to load progression data
+//    private func loadProgressionData(for exercise: Exercise) -> ProgressionData? {
+//        // This is the same logic from ExerciseLogView
+//        // We'll implement it here to get the progression data
+//        do {
+//            let context = splitDay.modelContext ?? ModelContext(ModelContainer.shared)
+//            let descriptor = FetchDescriptor<SetEntry>()
+//            let allSets = try context.fetch(descriptor)
+//            
+//            let currentDayStart = Calendar.current.startOfDay(for: selectedDate)
+//            let exerciseSets = allSets.filter { set in
+//                set.exercise.id == exercise.id &&
+//                Calendar.current.startOfDay(for: set.date) < currentDayStart
+//            }
+//            
+//            let groupedByDay = Dictionary(grouping: exerciseSets) { set in
+//                Calendar.current.startOfDay(for: set.date)
+//            }
+//            
+//            let sortedDays = groupedByDay.keys.sorted(by: >)
+//            
+//            for day in sortedDays {
+//                guard let daySets = groupedByDay[day] else { continue }
+//                
+//                if daySets.count >= exercise.targetSets {
+//                    let weights = daySets.map { $0.weight }
+//                    let maxWeight = weights.max() ?? 0
+//                    
+//                    if maxWeight > 0 {
+//                        let daysAgo = Calendar.current.dateComponents([.day], from: day, to: currentDayStart).day ?? 0
+//                        let isLowerBody = exercise.muscle == .legs
+//                        let increment = isLowerBody ? 5.0 : 2.5
+//                        let recommendedWeight = maxWeight + increment
+//                        
+//                        return ProgressionData(
+//                            lastWeight: maxWeight,
+//                            recommendedWeight: recommendedWeight,
+//                            lastWorkoutDate: day,
+//                            daysAgo: daysAgo
+//                        )
+//                    }
+//                }
+//            }
+//            
+//            return nil
+//        } catch {
+//            print("Error loading progression data: \(error)")
+//            return nil
+//        }
+//    }
 }
 //struct WorkoutLogSection: View {
 //    let splitDay: SplitDay
 //    @State private var showExercisePicker = false
 //    @State private var selectedExercise: Exercise?
 //    @State private var showLogSheet = false
-//    
+//
 //    var body: some View {
 //        VStack(alignment: .leading, spacing: 12) {
 //            Text("Today's Exercises")
 //                .font(.headline)
-//            
+//
 //            if splitDay.exercises.isEmpty {
 //                VStack(spacing: 16) {
 //                    Image(systemName: "dumbbell")
 //                        .font(.system(size: 40))
 //                        .foregroundStyle(.secondary)
-//                    
+//
 //                    Text("No exercises added yet")
 //                        .font(.subheadline)
 //                        .foregroundStyle(.secondary)
-//                    
+//
 //                    Button {
 //                        showExercisePicker = true
 //                    } label: {
@@ -318,7 +428,7 @@ struct WorkoutLogSection: View {
 //                    }
 //                    .buttonStyle(.plain)
 //                }
-//                
+//
 //                Button {
 //                    showExercisePicker = true
 //                } label: {
@@ -342,6 +452,8 @@ struct WorkoutLogSection: View {
 
 struct ExerciseLogView: View {
     let exercise: Exercise
+    let selectedDate: Date // ADD THIS PARAMETER
+
     
     // Store sets directly rather than using a Query with complex predicate
     @State private var completedSets: [SetEntry] = []
@@ -441,47 +553,45 @@ struct ExerciseLogView: View {
     }
     
     private func loadCompletedSets() {
-        // Manually fetch completed sets to avoid predicate issues
-        do {
-            let calendar = Calendar.current
-            let today = calendar.startOfDay(for: .now)
-            let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
-            
-            let descriptor = FetchDescriptor<SetEntry>()
-            let allSets = try context.fetch(descriptor)
-            
-            // Filter manually
-            self.completedSets = allSets.filter { set in
-                set.exercise.id == exercise.id &&
-                set.date >= today &&
-                set.date < tomorrow
+            do {
+                let calendar = Calendar.current
+                let startOfDay = calendar.startOfDay(for: selectedDate) // CHANGED: use selectedDate
+                let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+                
+                let descriptor = FetchDescriptor<SetEntry>()
+                let allSets = try context.fetch(descriptor)
+                
+                self.completedSets = allSets.filter { set in
+                    set.exercise.id == exercise.id &&
+                    set.date >= startOfDay &&
+                    set.date < endOfDay
+                }
+            } catch {
+                print("Error loading sets: \(error)")
             }
-        } catch {
-            print("Error loading sets: \(error)")
         }
-    }
 }
 //struct ExerciseLogView: View {
 //    let exercise: Exercise
-//    
+//
 //    // Store sets directly rather than using a Query with complex predicate
 //    @State private var completedSets: [SetEntry] = []
 //    @Environment(\.modelContext) private var context
-//    
+//
 //    var body: some View {
 //        VStack(alignment: .leading, spacing: 8) {
 //            HStack {
 //                VStack(alignment: .leading) {
 //                    Text(exercise.name)
 //                        .font(.headline)
-//                    
+//
 //                    Text(exercise.muscle.displayName)
 //                        .font(.subheadline)
 //                        .foregroundStyle(.secondary)
 //                }
-//                
+//
 //                Spacer()
-//                
+//
 //                if completedSets.isEmpty {
 //                    Text("Log")
 //                        .font(.footnote)
@@ -495,14 +605,14 @@ struct ExerciseLogView: View {
 //                    ProgressBadge(completed: completedSets.count, target: exercise.targetSets)
 //                }
 //            }
-//            
+//
 //            // Progress indicators and set summary
 //            if !completedSets.isEmpty {
 //                VStack(spacing: 6) {
 //                    // Progress bar
 //                    ProgressView(value: Double(completedSets.count), total: Double(exercise.targetSets))
 //                        .tint(.green)
-//                    
+//
 //                    HStack {
 //                        if completedSets.count >= exercise.targetSets {
 //                            Label("Complete!", systemImage: "checkmark.circle.fill")
@@ -513,9 +623,9 @@ struct ExerciseLogView: View {
 //                                .font(.caption)
 //                                .foregroundStyle(.secondary)
 //                        }
-//                        
+//
 //                        Spacer()
-//                            
+//
 //                        Button {
 //                            // Action to edit the logged workout
 //                        } label: {
@@ -524,7 +634,7 @@ struct ExerciseLogView: View {
 //                                .foregroundStyle(.blue)
 //                        }
 //                    }
-//                    
+//
 //                    // Show latest weight if available
 //                    if let maxWeight = completedSets.map({ $0.weight }).max(), maxWeight > 0 {
 //                        Text("Latest: \(Int(maxWeight))kg × \(completedSets.last?.reps ?? 0) reps")
@@ -546,17 +656,17 @@ struct ExerciseLogView: View {
 //            loadCompletedSets()
 //        }
 //    }
-//    
+//
 //    private func loadCompletedSets() {
 //        // Manually fetch completed sets to avoid predicate issues
 //        do {
 //            let calendar = Calendar.current
 //            let today = calendar.startOfDay(for: .now)
 //            let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
-//            
+//
 //            let descriptor = FetchDescriptor<SetEntry>()
 //            let allSets = try context.fetch(descriptor)
-//            
+//
 //            // Filter manually
 //            self.completedSets = allSets.filter { set in
 //                set.exercise.id == exercise.id &&
