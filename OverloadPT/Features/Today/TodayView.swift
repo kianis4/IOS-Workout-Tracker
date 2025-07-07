@@ -12,6 +12,7 @@ import SwiftData
 struct TodayView: View {
     @Query private var splits: [WorkoutSplit]
     @State private var selectedDate = Date()
+    @State private var showCalendar = false  // Add this line
     
     private var activeSplit: WorkoutSplit? {
         splits.first { $0.isActive }
@@ -28,8 +29,8 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Date selector
-                DateScrollView(selectedDate: $selectedDate)
+                // Date selector with calendar button
+                DateScrollView(selectedDate: $selectedDate, showCalendarAction: { showCalendar = true })
                 
                 if let split = activeSplit {
                     WorkoutForDayView(split: split, date: selectedDate)
@@ -47,31 +48,54 @@ struct TodayView: View {
                     }
                     .disabled(isToday)
                 }
+                
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showCalendar = true
+                    } label: {
+                        Label("Calendar", systemImage: "calendar")
+                    }
+                }
+            }
+            .sheet(isPresented: $showCalendar) {
+                CalendarPickerView(selectedDate: $selectedDate, isPresented: $showCalendar)
             }
         }
     }
 }
 
+
+// Update DateScrollView to include calendar button
 struct DateScrollView: View {
     @Binding var selectedDate: Date
     let days = -3...7 // Range of days to display
+    var showCalendarAction: () -> Void
     
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(days, id: \.self) { offset in
-                        let date = Calendar.current.date(byAdding: .day, value: offset, to: Date()) ?? Date()
-                        DateCell(date: date, isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate))
-                            .id(offset)
-                            .onTapGesture {
-                                withAnimation {
-                                    selectedDate = date
-                                }
-                            }
-                    }
+            HStack {
+                Button(action: showCalendarAction) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 20))
+                        .foregroundColor(.blue)
+                        .padding(.leading, 12)
                 }
-                .padding(.horizontal)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(days, id: \.self) { offset in
+                            let date = Calendar.current.date(byAdding: .day, value: offset, to: Date()) ?? Date()
+                            DateCell(date: date, isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate))
+                                .id(offset)
+                                .onTapGesture {
+                                    withAnimation {
+                                        selectedDate = date
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
             }
             .padding(.vertical, 8)
             .background(Color(.systemGroupedBackground))
@@ -332,123 +356,8 @@ struct WorkoutLogSection: View {
             return nil
         }
     }
-    // Helper function to load progression data
-//    private func loadProgressionData(for exercise: Exercise) -> ProgressionData? {
-//        // This is the same logic from ExerciseLogView
-//        // We'll implement it here to get the progression data
-//        do {
-//            let context = splitDay.modelContext ?? ModelContext(ModelContainer.shared)
-//            let descriptor = FetchDescriptor<SetEntry>()
-//            let allSets = try context.fetch(descriptor)
-//            
-//            let currentDayStart = Calendar.current.startOfDay(for: selectedDate)
-//            let exerciseSets = allSets.filter { set in
-//                set.exercise.id == exercise.id &&
-//                Calendar.current.startOfDay(for: set.date) < currentDayStart
-//            }
-//            
-//            let groupedByDay = Dictionary(grouping: exerciseSets) { set in
-//                Calendar.current.startOfDay(for: set.date)
-//            }
-//            
-//            let sortedDays = groupedByDay.keys.sorted(by: >)
-//            
-//            for day in sortedDays {
-//                guard let daySets = groupedByDay[day] else { continue }
-//                
-//                if daySets.count >= exercise.targetSets {
-//                    let weights = daySets.map { $0.weight }
-//                    let maxWeight = weights.max() ?? 0
-//                    
-//                    if maxWeight > 0 {
-//                        let daysAgo = Calendar.current.dateComponents([.day], from: day, to: currentDayStart).day ?? 0
-//                        let isLowerBody = exercise.muscle == .legs
-//                        let increment = isLowerBody ? 5.0 : 2.5
-//                        let recommendedWeight = maxWeight + increment
-//                        
-//                        return ProgressionData(
-//                            lastWeight: maxWeight,
-//                            recommendedWeight: recommendedWeight,
-//                            lastWorkoutDate: day,
-//                            daysAgo: daysAgo
-//                        )
-//                    }
-//                }
-//            }
-//            
-//            return nil
-//        } catch {
-//            print("Error loading progression data: \(error)")
-//            return nil
-//        }
-//    }
+
 }
-//struct WorkoutLogSection: View {
-//    let splitDay: SplitDay
-//    @State private var showExercisePicker = false
-//    @State private var selectedExercise: Exercise?
-//    @State private var showLogSheet = false
-//
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 12) {
-//            Text("Today's Exercises")
-//                .font(.headline)
-//
-//            if splitDay.exercises.isEmpty {
-//                VStack(spacing: 16) {
-//                    Image(systemName: "dumbbell")
-//                        .font(.system(size: 40))
-//                        .foregroundStyle(.secondary)
-//
-//                    Text("No exercises added yet")
-//                        .font(.subheadline)
-//                        .foregroundStyle(.secondary)
-//
-//                    Button {
-//                        showExercisePicker = true
-//                    } label: {
-//                        Label("Add Exercises", systemImage: "plus")
-//                            .frame(maxWidth: .infinity)
-//                    }
-//                    .buttonStyle(.borderedProminent)
-//                }
-//                .frame(maxWidth: .infinity)
-//                .padding()
-//                .background(Color(.secondarySystemGroupedBackground))
-//                .cornerRadius(12)
-//            } else {
-//                // Display exercises with log button
-//                ForEach(splitDay.exercises) { exercise in
-//                    Button {
-//                        selectedExercise = exercise
-//                        showLogSheet = true
-//                    } label: {
-//                        ExerciseLogView(exercise: exercise)
-//                            .contentShape(Rectangle())
-//                    }
-//                    .buttonStyle(.plain)
-//                }
-//
-//                Button {
-//                    showExercisePicker = true
-//                } label: {
-//                    Label("Add Exercise", systemImage: "plus")
-//                }
-//                .padding(.top)
-//            }
-//        }
-//        .sheet(isPresented: $showExercisePicker) {
-//            ExercisePickerView(splitDay: splitDay)
-//                .presentationDetents([.medium, .large])
-//        }
-//        .sheet(isPresented: $showLogSheet) {
-//            if let exercise = selectedExercise {
-//                ExerciseLogSheetView(exercise: exercise)
-//            }
-//        }
-//    }
-//}
-//
 
 struct ExerciseLogView: View {
     let exercise: Exercise
@@ -571,113 +480,6 @@ struct ExerciseLogView: View {
             }
         }
 }
-//struct ExerciseLogView: View {
-//    let exercise: Exercise
-//
-//    // Store sets directly rather than using a Query with complex predicate
-//    @State private var completedSets: [SetEntry] = []
-//    @Environment(\.modelContext) private var context
-//
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 8) {
-//            HStack {
-//                VStack(alignment: .leading) {
-//                    Text(exercise.name)
-//                        .font(.headline)
-//
-//                    Text(exercise.muscle.displayName)
-//                        .font(.subheadline)
-//                        .foregroundStyle(.secondary)
-//                }
-//
-//                Spacer()
-//
-//                if completedSets.isEmpty {
-//                    Text("Log")
-//                        .font(.footnote)
-//                        .fontWeight(.medium)
-//                        .padding(.horizontal, 16)
-//                        .padding(.vertical, 6)
-//                        .background(Color.blue)
-//                        .foregroundStyle(.white)
-//                        .cornerRadius(8)
-//                } else {
-//                    ProgressBadge(completed: completedSets.count, target: exercise.targetSets)
-//                }
-//            }
-//
-//            // Progress indicators and set summary
-//            if !completedSets.isEmpty {
-//                VStack(spacing: 6) {
-//                    // Progress bar
-//                    ProgressView(value: Double(completedSets.count), total: Double(exercise.targetSets))
-//                        .tint(.green)
-//
-//                    HStack {
-//                        if completedSets.count >= exercise.targetSets {
-//                            Label("Complete!", systemImage: "checkmark.circle.fill")
-//                                .foregroundStyle(.green)
-//                                .font(.caption.bold())
-//                        } else {
-//                            Text("\(completedSets.count)/\(exercise.targetSets) sets completed")
-//                                .font(.caption)
-//                                .foregroundStyle(.secondary)
-//                        }
-//
-//                        Spacer()
-//
-//                        Button {
-//                            // Action to edit the logged workout
-//                        } label: {
-//                            Text("Edit Log")
-//                                .font(.caption)
-//                                .foregroundStyle(.blue)
-//                        }
-//                    }
-//
-//                    // Show latest weight if available
-//                    if let maxWeight = completedSets.map({ $0.weight }).max(), maxWeight > 0 {
-//                        Text("Latest: \(Int(maxWeight))kg × \(completedSets.last?.reps ?? 0) reps")
-//                            .font(.caption)
-//                            .foregroundStyle(.secondary)
-//                    }
-//                }
-//            } else {
-//                Text("Target: \(exercise.targetSets) × \(exercise.targetReps)")
-//                    .font(.caption)
-//                    .foregroundStyle(.secondary)
-//            }
-//        }
-//        .padding()
-//        .frame(maxWidth: .infinity, alignment: .leading)
-//        .background(Color(.secondarySystemGroupedBackground))
-//        .cornerRadius(8)
-//        .onAppear {
-//            loadCompletedSets()
-//        }
-//    }
-//
-//    private func loadCompletedSets() {
-//        // Manually fetch completed sets to avoid predicate issues
-//        do {
-//            let calendar = Calendar.current
-//            let today = calendar.startOfDay(for: .now)
-//            let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
-//
-//            let descriptor = FetchDescriptor<SetEntry>()
-//            let allSets = try context.fetch(descriptor)
-//
-//            // Filter manually
-//            self.completedSets = allSets.filter { set in
-//                set.exercise.id == exercise.id &&
-//                set.date >= today &&
-//                set.date < tomorrow
-//            }
-//        } catch {
-//            print("Error loading sets: \(error)")
-//        }
-//    }
-//}
 
 // New component for showing completed/total sets in a badge
 struct ProgressBadge: View {
@@ -755,5 +557,53 @@ struct NoActiveSplitView: View {
         .padding(40)
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(16)
+    }
+}
+
+// Add new CalendarPickerView
+struct CalendarPickerView: View {
+    @Binding var selectedDate: Date
+    @Binding var isPresented: Bool
+    @State private var calendarDate: Date
+    
+    init(selectedDate: Binding<Date>, isPresented: Binding<Bool>) {
+        self._selectedDate = selectedDate
+        self._isPresented = isPresented
+        self._calendarDate = State(initialValue: selectedDate.wrappedValue)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                DatePicker("Select a date", selection: $calendarDate, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .padding()
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Selected date:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(calendarDate, style: .date)
+                        .font(.headline)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .navigationTitle("Select Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { isPresented = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        selectedDate = calendarDate
+                        isPresented = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
