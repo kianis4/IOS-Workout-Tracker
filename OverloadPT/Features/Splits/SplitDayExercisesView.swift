@@ -22,6 +22,8 @@ struct SplitDayExercisesView: View {
     @State private var selectedExercise: Exercise?
     @State private var showLogSheet = false
     @State private var isLoggingMode = false
+    let selectedDate: Date = Date() // Add this line
+
 
     var body: some View {
         List {
@@ -95,7 +97,8 @@ struct SplitDayExercisesView: View {
         // Change this sheet presentation:
         .sheet(isPresented: $showLogSheet) {
             if let exercise = selectedExercise {
-                ExerciseLogSheetView(exercise: exercise)  // Use ExerciseLogSheetView instead of ExerciseLogView
+                ExerciseLogSheetView(exercise: exercise, selectedDate: selectedDate,             progressionData: nil  // Add this parameter
+)  // Use ExerciseLogSheetView instead of ExerciseLogView
             }
         }
     }
