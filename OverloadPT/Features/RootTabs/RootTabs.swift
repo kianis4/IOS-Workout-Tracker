@@ -19,6 +19,11 @@ struct RootTabs: View {
                 .tabItem { Label("Splits", systemImage: "list.bullet") }
             NavigationStack { ProfileView() }   // NEW
                 .tabItem { Label("More", systemImage: "person.crop.circle") }
+            ProgressionView()
+                .tabItem {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                    Text("Progress")
+                }
         }
     }
 }
