@@ -53,12 +53,11 @@ struct TodayWorkoutView: View {
             .navigationTitle("Today's Workout")
             .sheet(isPresented: $showLogSheet) {
                 if let exercise = selectedExercise {
-                    ExerciseLogView(exercise: exercise)
+                    ExerciseLogView(exercise: exercise, selectedDate: Date())
                 }
             }
         }
     }
-    
     private var todaysWorkout: (day: SplitDay, weekday: Int)? {
         guard let activeSplit = activeSplit.first(where: { $0.isActive }) else {
             return nil
