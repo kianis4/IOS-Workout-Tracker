@@ -1,4 +1,12 @@
 //
+//  ExercisePickerSection.swift
+//  OverloadPT
+//
+//  Created by Suleyman Kiani on 2025-07-06.
+//
+
+
+//
 //  ProgressionSupportingViews.swift
 //  OverloadPT
 //
@@ -9,8 +17,11 @@ import SwiftUI
 import SwiftData
 
 struct ExercisePickerSection: View {
+    @Environment(\.modelContext) private var context
     let exercises: [Exercise]
     @Binding var selectedExercise: Exercise?
+    
+    @State private var trackedExercises: [TrackedExercise] = []
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -18,26 +29,106 @@ struct ExercisePickerSection: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             
-            Menu {
-                ForEach(exercises) { exercise in
-                    Button(exercise.name) {
-                        selectedExercise = exercise
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(selectedExercise?.name ?? "Select Exercise")
-                        .foregroundStyle(selectedExercise == nil ? .secondary : .primary)
-                    Spacer()
-                    Image(systemName: "chevron.down")
+            if trackedExercises.isEmpty {
+                VStack(spacing: 8) {
+                    Text("No tracked exercises yet")
                         .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                    
+                    Text("Start logging workouts to see progression data")
+                        .foregroundStyle(.tertiary)
                         .font(.caption)
+                        .multilineTextAlignment(.center)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .padding()
                 .background(Color(.tertiarySystemGroupedBackground))
                 .cornerRadius(8)
+            } else {
+                Menu {
+                    ForEach(trackedExercises) { trackedExercise in
+                        Button(action: {
+                            selectedExercise = trackedExercise.exercise
+                        }) {
+                            HStack {
+                                Text(trackedExercise.exercise.name)
+                                Spacer()
+                                Text("\(trackedExercise.workoutCount) workouts")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        if let selected = selectedExercise {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(selected.name)
+                                    .foregroundStyle(.primary)
+                                
+                                if let trackedExercise = trackedExercises.first(where: { $0.exercise.id == selected.id }) {
+                                    Text("\(trackedExercise.workoutCount) workouts logged")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        } else {
+                            Text("Select Exercise")
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .background(Color(.tertiarySystemGroupedBackground))
+                    .cornerRadius(8)
+                }
             }
+        }
+        .onAppear {
+            loadTrackedExercises()
+        }
+    }
+    
+    private func loadTrackedExercises() {
+        do {
+            let descriptor = FetchDescriptor<SetEntry>()
+            let allSets = try context.fetch(descriptor)
+            
+            // Group sets by exercise and count unique workout days
+            let exerciseGroups = Dictionary(grouping: allSets) { $0.exercise.id }
+            
+            var tracked: [TrackedExercise] = []
+            
+            for (exerciseId, sets) in exerciseGroups {
+                guard let exercise = exercises.first(where: { $0.id == exerciseId }) else { continue }
+                
+                // Count unique workout days for this exercise
+                let uniqueWorkoutDays = Set(sets.map {
+                    Calendar.current.startOfDay(for: $0.date)
+                }).count
+                
+                if uniqueWorkoutDays > 0 {
+                    tracked.append(TrackedExercise(
+                        exercise: exercise,
+                        workoutCount: uniqueWorkoutDays
+                    ))
+                }
+            }
+            
+            // Sort by workout count (most tracked first)
+            self.trackedExercises = tracked.sorted { $0.workoutCount > $1.workoutCount }
+            
+            // Auto-select the most tracked exercise if none selected
+            if selectedExercise == nil && !trackedExercises.isEmpty {
+                selectedExercise = trackedExercises.first?.exercise
+            }
+            
+        } catch {
+            print("Error loading tracked exercises: \(error)")
         }
     }
 }
@@ -310,4 +401,10 @@ struct WorkoutSession: Identifiable {
     let maxWeight: Double
     let totalSets: Int
     let avgReps: Int
+}
+
+struct TrackedExercise: Identifiable {
+    let id = UUID()
+    let exercise: Exercise
+    let workoutCount: Int
 }
