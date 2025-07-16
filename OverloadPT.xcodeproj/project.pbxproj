@@ -12,6 +12,10 @@
 		3F6FFE7E2E00DC1000CC7BD6 /* ExercisePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F6FFE7D2E00DC1000CC7BD6 /* ExercisePickerView.swift */; };
 		3F6FFE802E00E10A00CC7BD6 /* ExerciseLogSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F6FFE7F2E00E10A00CC7BD6 /* ExerciseLogSheetView.swift */; };
 		3F6FFE822E00E1F700CC7BD6 /* TodayWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F6FFE812E00E1F700CC7BD6 /* TodayWorkoutView.swift */; };
+		3FA2F7CD2E25709A0093EF2F /* WeightTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA2F7CC2E25709A0093EF2F /* WeightTrackingView.swift */; };
+		3FA2F7CF2E2570B20093EF2F /* WeightProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA2F7CE2E2570B20093EF2F /* WeightProgressView.swift */; };
+		3FA2F7D22E2571A20093EF2F /* TimeRange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA2F7D12E2571A20093EF2F /* TimeRange.swift */; };
+		3FA2F7D42E270D710093EF2F /* SplitTemplatePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA2F7D32E270D710093EF2F /* SplitTemplatePickerView.swift */; };
 		3FAFBBFF2E1B371B00FB855D /* ProgressionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAFBBFE2E1B371B00FB855D /* ProgressionView.swift */; };
 		3FAFBC012E1B373500FB855D /* ProgressChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAFBC002E1B373500FB855D /* ProgressChartView.swift */; };
 		3FAFBC032E1B374E00FB855D /* ExercisePickerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAFBC022E1B374E00FB855D /* ExercisePickerSection.swift */; };
@@ -64,6 +68,10 @@
 		3F6FFE7D2E00DC1000CC7BD6 /* ExercisePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePickerView.swift; sourceTree = "<group>"; };
 		3F6FFE7F2E00E10A00CC7BD6 /* ExerciseLogSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLogSheetView.swift; sourceTree = "<group>"; };
 		3F6FFE812E00E1F700CC7BD6 /* TodayWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayWorkoutView.swift; sourceTree = "<group>"; };
+		3FA2F7CC2E25709A0093EF2F /* WeightTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightTrackingView.swift; sourceTree = "<group>"; };
+		3FA2F7CE2E2570B20093EF2F /* WeightProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightProgressView.swift; sourceTree = "<group>"; };
+		3FA2F7D12E2571A20093EF2F /* TimeRange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeRange.swift; sourceTree = "<group>"; };
+		3FA2F7D32E270D710093EF2F /* SplitTemplatePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitTemplatePickerView.swift; sourceTree = "<group>"; };
 		3FAFBBFE2E1B371B00FB855D /* ProgressionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionView.swift; sourceTree = "<group>"; };
 		3FAFBC002E1B373500FB855D /* ProgressChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressChartView.swift; sourceTree = "<group>"; };
 		3FAFBC022E1B374E00FB855D /* ExercisePickerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePickerSection.swift; sourceTree = "<group>"; };
@@ -137,6 +145,7 @@
 		3F6FFE772E00D93C00CC7BD6 /* Today */ = {
 			isa = PBXGroup;
 			children = (
+				3FA2F7CC2E25709A0093EF2F /* WeightTrackingView.swift */,
 				3F6FFE812E00E1F700CC7BD6 /* TodayWorkoutView.swift */,
 				3F6FFE782E00D94700CC7BD6 /* TodayView.swift */,
 			);
@@ -152,9 +161,18 @@
 			path = Exercises;
 			sourceTree = "<group>";
 		};
+		3FA2F7D02E2571970093EF2F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				3FA2F7D12E2571A20093EF2F /* TimeRange.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		3FAFBBFD2E1B370E00FB855D /* Progression */ = {
 			isa = PBXGroup;
 			children = (
+				3FA2F7CE2E2570B20093EF2F /* WeightProgressView.swift */,
 				3FAFBC022E1B374E00FB855D /* ExercisePickerSection.swift */,
 				3FAFBC002E1B373500FB855D /* ProgressChartView.swift */,
 				3FAFBBFE2E1B371B00FB855D /* ProgressionView.swift */,
@@ -197,6 +215,7 @@
 		3FDF0D332DFE28EA001981DB /* OverloadPT */ = {
 			isa = PBXGroup;
 			children = (
+				3FA2F7D02E2571970093EF2F /* Models */,
 				3FDF0D412DFE3235001981DB /* Features */,
 				3FDF0D3B2DFE2D05001981DB /* Resources */,
 				3FDF0D2E2DFE28EA001981DB /* Core */,
@@ -261,6 +280,7 @@
 		3FDF0D4E2DFE5DB3001981DB /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				3FA2F7D32E270D710093EF2F /* SplitTemplatePickerView.swift */,
 				3FBA215C2DFE7E20009517A0 /* TemplatePickerView.swift */,
 				3FDF0D6B2DFE7BE6001981DB /* RecommendedTemplateView.swift */,
 				3FDF0D692DFE7BD6001981DB /* GoalExperienceView.swift */,
@@ -454,6 +474,9 @@
 				3FDF0D5B2DFE6004001981DB /* ProfileView.swift in Sources */,
 				3FDF0D462DFE3435001981DB /* SplitDetailView.swift in Sources */,
 				3F6FFE792E00D94700CC7BD6 /* TodayView.swift in Sources */,
+				3FA2F7D42E270D710093EF2F /* SplitTemplatePickerView.swift in Sources */,
+				3FA2F7CD2E25709A0093EF2F /* WeightTrackingView.swift in Sources */,
+				3FA2F7D22E2571A20093EF2F /* TimeRange.swift in Sources */,
 				3FDF0D402DFE2D62001981DB /* ExerciseSeeder.swift in Sources */,
 				3FDF0D532DFE5E27001981DB /* RootSwitchView.swift in Sources */,
 				3F6FFE7B2E00DBF900CC7BD6 /* SplitDayExercisesView.swift in Sources */,
@@ -474,6 +497,7 @@
 				3FDF0D502DFE5DBD001981DB /* ProfileCaptureView.swift in Sources */,
 				3FDF0D5D2DFE62F4001981DB /* OnboardDraft.swift in Sources */,
 				3FDF0D6C2DFE7BE6001981DB /* RecommendedTemplateView.swift in Sources */,
+				3FA2F7CF2E2570B20093EF2F /* WeightProgressView.swift in Sources */,
 				3FDF0D482DFE357E001981DB /* WeekdayToggleRow.swift in Sources */,
 				3FAFBBFF2E1B371B00FB855D /* ProgressionView.swift in Sources */,
 				3F6FFE822E00E1F700CC7BD6 /* TodayWorkoutView.swift in Sources */,
