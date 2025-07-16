@@ -4,73 +4,115 @@
 //
 //  Created by Suleyman Kiani on 2025-06-14.
 //
+
 import SwiftUI
 
 struct ProfileCaptureView: View {
     @ObservedObject var draft: OnboardDraft
-    @State private var goNext = false
-
-    @State private var first = ""
-    @State private var unit: MassUnit = .kg
     @State private var weightText = ""
     @State private var heightText = ""
-    @State private var feetText   = ""
-    @State private var inchText   = ""
-
+    
     var body: some View {
         Form {
-            // ── Personal ───────────────────────────
-            Section("About you") {
-                TextField("First name", text: $first)
-
-                Picker("Gender", selection: $draft.gender) {           // NEW
-                    ForEach(Gender.allCases) { Text($0.rawValue.capitalized).tag($0) }
-                }
-
-                Picker("Units", selection: $unit) {
-                    Text("Kilograms").tag(MassUnit.kg)
-                    Text("Pounds").tag(MassUnit.lb)
-                }
-                .pickerStyle(.segmented)
-
-                if unit == .kg {
-                    TextField("Height (cm)", text: $heightText)        // cm field
-                        .keyboardType(.decimalPad)
-                } else {
-                    HStack {                                           // ft-in fields
-                        TextField("ft", text: $feetText)
-                            .keyboardType(.numberPad)
-                            .frame(width: 40)
-                        TextField("in", text: $inchText)
-                            .keyboardType(.numberPad)
-                            .frame(width: 50)
-                    }
-                }
-
-                TextField("Current weight (\(unit == .kg ? "kg":"lb"))",
-                          text: $weightText)
-                    .keyboardType(.decimalPad)
-            }
-
-            Button("Next")  { stash(); goNext = true }
-                .buttonStyle(.borderedProminent)
-                .disabled(first.isEmpty)
+            basicInfoSection
+            physicalStatsSection
+            trainingSection
+            continueSection
         }
-        .navigationTitle("Welcome")
-        .navigationDestination(isPresented: $goNext) {
-            GoalExperienceView(draft: draft)          // step 2
+        .navigationTitle("Profile")
+        .onAppear {
+            setupInitialValues()
+        }
+        .onChange(of: weightText) { _, newValue in
+            draft.weight = Double(newValue)
+        }
+        .onChange(of: heightText) { _, newValue in
+            draft.heightCm = Double(newValue)
         }
     }
-
-    private func stash() {
-        draft.firstName = first
-        draft.unit      = unit
-        if let w = Double(weightText) { draft.weight = w }
-        if let h = Double(heightText) { draft.heightCm = h }
-        if unit == .lb, let ft = Double(feetText), let inch = Double(inchText) {
-            draft.heightCm = (ft * 12 + inch) * 2.54
-        } else if let h = Double(heightText) {
-            draft.heightCm = h
+    
+    private var basicInfoSection: some View {
+        Section("Basic Information") {
+            TextField("First Name", text: $draft.firstName)
+            
+            Picker("Units", selection: $draft.unit) {
+                ForEach(MassUnit.allCases, id: \.self) { unit in
+                    Text(unit.rawValue).tag(unit)
+                }
+            }
+            .pickerStyle(.segmented)
+            
+            Picker("Gender", selection: $draft.gender) {
+                ForEach(Gender.allCases, id: \.self) { gender in
+                    Text(gender.rawValue.capitalized).tag(gender)
+                }
+            }
+        }
+    }
+    
+    private var physicalStatsSection: some View {
+        Section("Physical Stats") {
+            HStack {
+                Text("Weight")
+                Spacer()
+                TextField("Weight", text: $weightText)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 80)
+                Text(draft.unit.rawValue)
+            }
+            
+            HStack {
+                Text("Height")
+                Spacer()
+                TextField("Height in cm", text: $heightText)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 80)
+                Text("cm")
+            }
+        }
+    }
+    
+    private var trainingSection: some View {
+        Section("Training") {
+            Picker("Goal", selection: $draft.goal) {
+                ForEach(GoalType.allCases, id: \.self) { goal in
+                    Text(goal.rawValue).tag(goal)
+                }
+            }
+            
+            Picker("Experience", selection: $draft.experience) {
+                ForEach(ExperienceLevel.allCases, id: \.self) { level in
+                    Text(level.rawValue.capitalized).tag(level)
+                }
+            }
+        }
+    }
+    
+    private var continueSection: some View {
+        Section {
+            NavigationLink(destination: SplitTemplatePickerView(draft: draft)) {
+                Text("Continue")
+                    .frame(maxWidth: .infinity)
+                    .fontWeight(.medium)
+            }
+            .disabled(draft.firstName.isEmpty || draft.weight == nil || draft.heightCm == nil)
+        }
+    }
+    
+    private func setupInitialValues() {
+        // Only set defaults if user hasn't entered anything
+        if weightText.isEmpty {
+            let defaultWeight = draft.unit == .kg ? 70.0 : 154.0
+            draft.weight = defaultWeight
+            weightText = String(defaultWeight)
+        }
+        
+        if heightText.isEmpty {
+            let defaultHeight = 170.0
+            draft.heightCm = defaultHeight
+            heightText = String(defaultHeight)
         }
     }
 }
