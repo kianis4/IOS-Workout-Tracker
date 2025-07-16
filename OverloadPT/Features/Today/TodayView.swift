@@ -28,17 +28,28 @@ struct TodayView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Date selector with calendar button
-                DateScrollView(selectedDate: $selectedDate, showCalendarAction: { showCalendar = true })
-                
-                if let split = activeSplit {
-                    WorkoutForDayView(split: split, date: selectedDate)
-                } else {
-                    NoActiveSplitView()
+                VStack(spacing: 0) {
+                    // Date selector with calendar button
+                    DateScrollView(selectedDate: $selectedDate, showCalendarAction: { showCalendar = true })
+                    
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Add the weight tracking section
+                            WeightTrackingView(selectedDate: selectedDate)
+                                .padding(.horizontal)
+                            
+                            // Show workout section
+                            if let split = activeSplit {
+                                WorkoutForDayView(split: split, date: selectedDate)
+                            } else {
+                                NoActiveSplitView()
+                            }
+                        }
+                        .padding(.vertical)
+                    }
                 }
-            }
-            .navigationTitle(isToday ? "Today's Workout" : dateDisplay)
+                .navigationTitle(isToday ? "Today's Workout" : dateDisplay)
+                // Rest of the code stays the same
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -167,9 +178,12 @@ struct WorkoutForDayView: View {
         // Find position of today's day of week in ordered workout days
         guard let position = orderedWorkoutDays.firstIndex(of: dayOfWeek) else { return nil }
         
+        // Get split days sorted by order (this is the key fix)
+        let sortedSplitDays = split.days.sorted { $0.order < $1.order }
+        
         // Map to corresponding split day, using modulo to cycle through days
-        let dayIndex = position % split.days.count
-        return split.days[dayIndex]
+        let dayIndex = position % sortedSplitDays.count
+        return sortedSplitDays[dayIndex]
     }
     
     var body: some View {
