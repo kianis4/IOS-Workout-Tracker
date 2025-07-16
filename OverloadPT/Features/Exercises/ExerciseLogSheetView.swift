@@ -312,6 +312,13 @@ struct SetRowView: View {
     let index: Int
     @Binding var set: SetEntryViewModel
     let onDelete: () -> Void
+    
+    // Add this to get user's preferred unit
+    @Query private var userProfiles: [UserProfile]
+    
+    private var weightUnit: String {
+        userProfiles.first?.unit.rawValue ?? "kg"
+    }
 
     var body: some View {
         HStack {
@@ -331,13 +338,13 @@ struct SetRowView: View {
                     .frame(width: 50)
                     .textFieldStyle(.roundedBorder)
                     .font(.headline)
-                Text("kg")
+                Text(weightUnit) // Changed from hardcoded "kg"
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(width: 24, alignment: .leading)
             }
             .frame(width: 80)
 
-            // Reps stepper
+            // Rest of the view remains the same...
             Stepper(value: $set.reps, in: 1...50) {
                 HStack(spacing: 2) {
                     Text("\(set.reps)")
@@ -349,7 +356,6 @@ struct SetRowView: View {
 
             Spacer(minLength: 0)
 
-            // Delete button
             Button(action: onDelete) {
                 Image(systemName: "xmark")
                     .foregroundColor(.red)
@@ -359,11 +365,9 @@ struct SetRowView: View {
         }
         .padding(.vertical, 4)
         .onReceive(Just(set)) { newValue in
-            // Keep weight >= 0
             if newValue.weight < 0 {
                 set.weight = 0
             }
-            // Keep reps >= 1
             if newValue.reps < 1 {
                 set.reps = 1
             }
