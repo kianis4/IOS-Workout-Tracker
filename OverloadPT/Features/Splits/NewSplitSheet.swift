@@ -5,6 +5,12 @@
 //  Created by Suleyman Kiani on 2025-06-14.
 //
 
+//
+//  NewSplitSheet.swift
+//  OverloadPT
+//
+//  Created by Suleyman Kiani on 2025-06-14.
+//
 
 import SwiftUI
 import SwiftData
@@ -103,9 +109,10 @@ struct NewSplitSheet: View {
         // Create split with the name
         let split = WorkoutSplit(name: name)
         
-        // Add days from template
-        for dayTitle in template.dayTitles {
-            split.days.append(SplitDay(title: dayTitle))
+        // Add days from template with proper order
+        for (index, dayTitle) in template.dayTitles.enumerated() {
+            let splitDay = SplitDay(title: dayTitle, order: index)
+            split.days.append(splitDay)
         }
         
         // Set workout days based on template
