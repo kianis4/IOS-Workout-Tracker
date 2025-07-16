@@ -1,18 +1,40 @@
-// Features/Today/WeightTrackingView.swift
+//
+//  WeightTrackingView.swift
+//  OverloadPT
+//
+//  Created by Suleyman Kiani on 2025-07-14.
+//
 import SwiftUI
 import SwiftData
 import Charts
 
 struct WeightTrackingView: View {
     @Environment(\.modelContext) private var context
+    @Query private var userProfiles: [UserProfile]
     let selectedDate: Date
     @Query private var weightLogs: [BodyWeightRecord]
     @State private var showingWeightEntry = false
     
+    private var userProfile: UserProfile? {
+        userProfiles.first
+    }
+    
+    private var massUnit: MassUnit {
+        userProfile?.unit ?? .kg
+    }
+    
+    private var unitSymbol: String {
+        massUnit == .kg ? "kg" : "lbs"
+    }
+    
+    private func formatWeight(_ weight: Double) -> String {
+        let displayWeight = massUnit == .kg ? weight : weight * 2.20462
+        return String(format: "%.1f", displayWeight)
+    }
+    
     init(selectedDate: Date) {
         self.selectedDate = selectedDate
         
-        // Create query predicate for the selected date's weight log
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: selectedDate)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
@@ -30,12 +52,15 @@ struct WeightTrackingView: View {
                 .font(.headline)
             
             if let weightLog = weightLogs.first {
-                // Show today's logged weight
-                WeightDisplayCard(weightLog: weightLog) {
+                WeightDisplayCard(
+                    weightLog: weightLog,
+                    massUnit: massUnit,
+                    unitSymbol: unitSymbol,
+                    formatWeight: formatWeight
+                ) {
                     showingWeightEntry = true
                 }
             } else {
-                // Show prompt to log weight
                 WeightEntryPromptCard {
                     showingWeightEntry = true
                 }
@@ -45,7 +70,8 @@ struct WeightTrackingView: View {
         .sheet(isPresented: $showingWeightEntry) {
             WeightEntrySheet(
                 date: selectedDate,
-                existingLog: weightLogs.first
+                existingLog: weightLogs.first,
+                massUnit: massUnit
             )
         }
     }
@@ -53,12 +79,15 @@ struct WeightTrackingView: View {
 
 struct WeightDisplayCard: View {
     let weightLog: BodyWeightRecord
+    let massUnit: MassUnit
+    let unitSymbol: String
+    let formatWeight: (Double) -> String
     let editAction: () -> Void
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(String(format: "%.1f", weightLog.weight)) kg")
+                Text("\(formatWeight(weightLog.weight)) \(unitSymbol)")
                     .font(.title2)
                     .fontWeight(.bold)
                 
@@ -90,10 +119,11 @@ struct WeightEntryPromptCard: View {
         Button(action: action) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Log today's weight")
-                        .font(.headline)
+                    Text("Log your weight")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     
-                    Text("Track your progress with daily weigh-ins")
+                    Text("Track your progress")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -102,10 +132,9 @@ struct WeightEntryPromptCard: View {
                 
                 Image(systemName: "plus.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.blue)
             }
             .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.secondarySystemGroupedBackground))
             .cornerRadius(12)
         }
@@ -116,20 +145,26 @@ struct WeightEntryPromptCard: View {
 struct WeightEntrySheet: View {
     let date: Date
     let existingLog: BodyWeightRecord?
+    let massUnit: MassUnit
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     
-    @State private var weight: Double
+    @State private var displayWeight: Double
     @State private var notes: String = ""
     
-    init(date: Date, existingLog: BodyWeightRecord? = nil) {
+    private var unitSymbol: String {
+        massUnit == .kg ? "kg" : "lbs"
+    }
+    
+    init(date: Date, existingLog: BodyWeightRecord? = nil, massUnit: MassUnit) {
         self.date = date
         self.existingLog = existingLog
+        self.massUnit = massUnit
         
-        // Get current weight from user profile or default to previous weight or 70.0
         let startingWeight = existingLog?.weight ?? 70.0
-        self._weight = State(initialValue: startingWeight)
+        let displayWeight = massUnit == .kg ? startingWeight : startingWeight * 2.20462
+        self._displayWeight = State(initialValue: displayWeight)
     }
     
     var body: some View {
@@ -139,10 +174,10 @@ struct WeightEntrySheet: View {
                     HStack {
                         Text("Weight")
                         Spacer()
-                        TextField("Weight in kg", value: $weight, format: .number)
+                        TextField("Weight", value: $displayWeight, format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
-                        Text("kg")
+                        Text(unitSymbol)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -171,41 +206,49 @@ struct WeightEntrySheet: View {
     }
     
     private func saveEntry() {
+        // Convert display weight to kg for storage
+        let weightInKg = massUnit == .kg ? displayWeight : displayWeight / 2.20462
+        
         if let existing = existingLog {
-            // Update existing log
-            existing.weight = weight
+            existing.weight = weightInKg
         } else {
-            // Create new log
-            let newLog = BodyWeightRecord(date: date, weight: weight)
+            let newLog = BodyWeightRecord(date: date, weight: weightInKg)
             context.insert(newLog)
         }
         
-        // Update user profile's current weight
-        updateUserProfile()
+        updateUserProfile(weightInKg: weightInKg)
         
-        // Save and dismiss
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            print("Error saving weight: \(error)")
+        }
+        
         dismiss()
     }
     
     private func deleteEntry() {
         if let existing = existingLog {
             context.delete(existing)
-            try? context.save()
+            do {
+                try context.save()
+            } catch {
+                print("Error deleting weight: \(error)")
+            }
         }
         dismiss()
     }
     
-    private func updateUserProfile() {
+    private func updateUserProfile(weightInKg: Double) {
         do {
             let descriptor = FetchDescriptor<UserProfile>()
             let profiles = try context.fetch(descriptor)
             
             if let profile = profiles.first {
-                profile.currentWeight = weight
+                profile.currentWeight = weightInKg
             }
             
-            try? context.save()
+            try context.save()
         } catch {
             print("Error updating user profile: \(error)")
         }
