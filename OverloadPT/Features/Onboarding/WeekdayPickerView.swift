@@ -4,15 +4,11 @@
 //
 //  Created by Suleyman Kiani on 2025-06-14.
 //
-//
-//  WeekdayPickerView.swift
-//  OverloadPT
-//
 
 import SwiftUI
 import SwiftData
 
-/// Final onboarding step – pick the exact weekdays you’ll train.
+/// Final onboarding step – pick the exact weekdays you'll train.
 struct WeekdayPickerView: View {
     @ObservedObject var draft: OnboardDraft
     @Environment(\.modelContext) private var ctx
@@ -36,21 +32,25 @@ struct WeekdayPickerView: View {
     private func finishOnboarding() {
         // 1️⃣ save profile
         let p = UserProfile(firstName: draft.firstName)
-        p.unit         = draft.unit
-        p.heightCm     = draft.heightCm
-        p.currentWeight = draft.weight
-        p.goal         = draft.goal
-        p.experience   = draft.experience
+        p.unit = draft.unit
+        p.heightCm = draft.heightCm ?? 0
+        p.currentWeight = draft.weight ?? 0
+        p.goal = draft.goal
+        p.experience = draft.experience
         p.gender = draft.gender
         ctx.insert(p)
 
         // 2️⃣ create first split
         if let tmpl = draft.chosenTemplate {
             let split = WorkoutSplit(name: tmpl.name)
-            split.isActive    = true
+            split.isActive = true
             split.workoutDays = draft.chosenWeekdays
-            split.days = tmpl.dayTitles.enumerated()
-                .map { SplitDay(title: $1, order: $0) }
+            
+            // Create days with proper order
+            split.days = tmpl.dayTitles.enumerated().map { index, title in
+                SplitDay(title: title, order: index)
+            }
+            
             ctx.insert(split)
         }
 
