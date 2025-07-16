@@ -5,80 +5,101 @@
 //  Created by Suleyman Kiani on 2025-07-06.
 //
 
-
-//
-//  ProgressionView.swift
-//  OverloadPT
-//
-//  Created by Suleyman Kianchi on 2025-06-17.
-//
-
 import SwiftUI
 import SwiftData
 import Charts
+
+enum ProgressionType: String, CaseIterable {
+    case bodyWeight = "Body Weight"
+    case lifting = "Lifting"
+    
+    var id: String { rawValue }
+}
 
 struct ProgressionView: View {
     @Environment(\.modelContext) private var context
     @Query private var exercises: [Exercise]
     @State private var selectedExercise: Exercise?
     @State private var timeFrame: TimeFrame = .month
+    @State private var progressionType: ProgressionType = .bodyWeight
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Exercise Picker
-                if !exercises.isEmpty {
-                    ExercisePickerSection(
-                        exercises: exercises,
-                        selectedExercise: $selectedExercise
-                    )
-                    .padding()
-                    .background(Color(.systemGroupedBackground))
+                // Progress Type Selector
+                Picker("Progress Type", selection: $progressionType) {
+                    ForEach(ProgressionType.allCases, id: \.id) { type in
+                        Text(type.rawValue).tag(type)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .padding()
+                .background(Color(.systemGroupedBackground))
                 
-                if let exercise = selectedExercise {
-                    // Time Frame Picker
-                    TimeFramePickerSection(timeFrame: $timeFrame)
-                        .padding(.horizontal)
-                        .padding(.top)
-                    
-                    // Progress Charts
+                // Content based on selected type
+                if progressionType == .bodyWeight {
                     ScrollView {
-                        LazyVStack(spacing: 20) {
-                            ProgressChartView(
-                                exercise: exercise,
-                                timeFrame: timeFrame
-                            )
-                            
-                            StatsCardView(
-                                exercise: exercise,
-                                timeFrame: timeFrame
-                            )
-                            
-                            WorkoutHistoryView(
-                                exercise: exercise,
-                                timeFrame: timeFrame
-                            )
-                        }
-                        .padding()
+                        WeightProgressView()
+                            .padding()
                     }
                 } else {
-                    // Empty State
-                    VStack(spacing: 16) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
+                    // Lifting progression (your existing code)
+                    VStack(spacing: 0) {
+                        // Exercise Picker
+                        if !exercises.isEmpty {
+                            ExercisePickerSection(
+                                exercises: exercises,
+                                selectedExercise: $selectedExercise
+                            )
+                            .padding()
+                            .background(Color(.systemGroupedBackground))
+                        }
                         
-                        Text("Track Your Progress")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("Select an exercise to view your progression")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+                        if let exercise = selectedExercise {
+                            // Time Frame Picker
+                            TimeFramePickerSection(timeFrame: $timeFrame)
+                                .padding(.horizontal)
+                                .padding(.top)
+                            
+                            // Progress Charts
+                            ScrollView {
+                                LazyVStack(spacing: 20) {
+                                    ProgressChartView(
+                                        exercise: exercise,
+                                        timeFrame: timeFrame
+                                    )
+                                    
+                                    StatsCardView(
+                                        exercise: exercise,
+                                        timeFrame: timeFrame
+                                    )
+                                    
+                                    WorkoutHistoryView(
+                                        exercise: exercise,
+                                        timeFrame: timeFrame
+                                    )
+                                }
+                                .padding()
+                            }
+                        } else {
+                            // Empty State for lifting
+                            VStack(spacing: 16) {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                    .font(.system(size: 60))
+                                    .foregroundStyle(.secondary)
+                                
+                                Text("Track Your Lifting Progress")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                
+                                Text("Select an exercise to view your progression")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .navigationTitle("Progression")
@@ -91,6 +112,7 @@ struct ProgressionView: View {
     }
 }
 
+// Rest of your existing code remains the same...
 enum TimeFrame: String, CaseIterable {
     case week = "1W"
     case month = "1M"
