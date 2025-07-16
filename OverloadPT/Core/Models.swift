@@ -6,7 +6,6 @@
 //
 //
 
-
 import Foundation
 import SwiftData
 
@@ -50,19 +49,51 @@ final class WorkoutSplit {
     var isActive = false
 
     /// Bit-mask of weekdays (0 = Sun … 6 = Sat)
-    var workoutDayMask: Int16 = 0
+    private var workoutDayMask: Int16 = 0
     var days: [SplitDay] = []
 
-    init(name: String) { self.name = name }
+    init(name: String) {
+        self.name = name
+    }
 
-    /// Convenience API (not persisted)
+    /// Convenience API for working with workout days as a Set
     var workoutDays: Set<Int> {
-        get { Set((0...6).filter { (workoutDayMask & (1 << $0)) != 0 }) }
+        get {
+            var result: Set<Int> = []
+            for day in 0...6 {
+                if (workoutDayMask & (1 << day)) != 0 {
+                    result.insert(day)
+                }
+            }
+            return result
+        }
         set {
             var mask: Int16 = 0
-            newValue.forEach { mask |= Int16(1 << $0) }
+            for day in newValue where day >= 0 && day <= 6 {
+                mask |= Int16(1 << day)
+            }
             workoutDayMask = mask
         }
+    }
+    
+    /// Helper methods for better encapsulation
+    func addWorkoutDay(_ day: Int) {
+        guard day >= 0 && day <= 6 else { return }
+        workoutDayMask |= Int16(1 << day)
+    }
+    
+    func removeWorkoutDay(_ day: Int) {
+        guard day >= 0 && day <= 6 else { return }
+        workoutDayMask &= ~Int16(1 << day)
+    }
+    
+    func hasWorkoutDay(_ day: Int) -> Bool {
+        guard day >= 0 && day <= 6 else { return false }
+        return (workoutDayMask & (1 << day)) != 0
+    }
+    
+    func clearWorkoutDays() {
+        workoutDayMask = 0
     }
 }
 
@@ -82,9 +113,10 @@ final class SplitDay: Identifiable {
 // MARK: - Tracking & Profile
 @Model
 final class BodyWeightRecord {
-    var date: Date
     var weight: Double
-    init(date: Date = .now, weight: Double) {
+    var date: Date
+    
+    init(date: Date = Date(), weight: Double) {
         self.date = date
         self.weight = weight
     }
@@ -98,16 +130,30 @@ enum Gender: String, Codable, CaseIterable, Identifiable {
 @Model
 final class UserProfile {
     var firstName: String
-    var unit:       MassUnit        = MassUnit.kg
-    var heightCm:   Double?
-    var currentWeight: Double?
-    var goal:       GoalType        = GoalType.buildMuscle
-    var experience: ExperienceLevel = ExperienceLevel.novice
-    var gender: Gender = Gender.undisclosed
-
-    init(firstName: String) { self.firstName = firstName }
+    var unit: MassUnit  // Change back to MassUnit
+    var heightCm: Double
+    var currentWeight: Double
+    var goal: GoalType
+    var experience: ExperienceLevel
+    var gender: Gender
+    var createdAt: Date
+    
+    init(firstName: String) {
+        self.firstName = firstName
+        self.unit = .kg
+        self.heightCm = 170
+        self.currentWeight = 70
+        self.goal = .buildMuscle
+        self.experience = .novice
+        self.gender = .undisclosed
+        self.createdAt = Date()
+    }
 }
 
+enum MassUnit: String, CaseIterable, Codable {
+    case kg = "kg"
+    case lb = "lb"
+}
 // MARK: - Helper enums
 enum MuscleGroup: String, Codable, CaseIterable, Identifiable {
     case chest, back, legs, shoulders, biceps, triceps, forearms, core, fullBody
@@ -134,12 +180,6 @@ enum MuscleGroup: String, Codable, CaseIterable, Identifiable {
         case .fullBody: return ExerciseDatabase.fullBody
         }
     }
-}
-
-enum MassUnit: String, Codable, CaseIterable, Identifiable {
-    case kg, lb
-    var id: String { rawValue }
-    var unitMass: UnitMass { self == .kg ? .kilograms : .pounds }
 }
 
 enum GoalType: String, Codable, CaseIterable, Identifiable {
