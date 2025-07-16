@@ -1,25 +1,64 @@
-// Features/Progress/WeightProgressView.swift
+//
+//  WeightProgressView.swift
+//  OverloadPT
+//
+//  Created by Suleyman Kiani on 2025-07-14.
+//
+
 import SwiftUI
 import SwiftData
 import Charts
 
-struct WeightProgressView: View {
-    @Query private var weightLogs: [BodyWeightRecord]
-    @State private var timeRange: TimeRange = .month
-    
-    init(timeRange: TimeRange = .month) {
-        self._timeRange = State(initialValue: timeRange)
-        
-        // Get weight logs for the selected time range
-        let cutoffDate = timeRange.dateRange
-        let predicate = #Predicate<BodyWeightRecord> { log in
-            log.date >= cutoffDate
+// Define a new enum with a different name
+enum WeightTimeRange: String, CaseIterable, Identifiable {
+    case week = "7 Days"
+    case month = "30 Days"
+    case threeMonths = "3 Months"
+    case sixMonths = "6 Months"
+    case year = "1 Year"
+
+    var id: Self { self }
+
+    var dateRange: Date {
+        let calendar = Calendar.current
+        let now = Date()
+
+        switch self {
+        case .week:
+            return calendar.date(byAdding: .day, value: -7, to: now)!
+        case .month:
+            return calendar.date(byAdding: .day, value: -30, to: now)!
+        case .threeMonths:
+            return calendar.date(byAdding: .month, value: -3, to: now)!
+        case .sixMonths:
+            return calendar.date(byAdding: .month, value: -6, to: now)!
+        case .year:
+            return calendar.date(byAdding: .year, value: -1, to: now)!
         }
-        
-        self._weightLogs = Query(
-            filter: predicate,
-            sort: [SortDescriptor(\.date)]
-        )
+    }
+}
+
+struct WeightProgressView: View {
+    @Environment(\.modelContext) private var context
+    @Query private var userProfiles: [UserProfile]
+    @State private var timeRange: WeightTimeRange = .month
+    @State private var weightLogs: [BodyWeightRecord] = []
+    
+    private var userProfile: UserProfile? {
+        userProfiles.first
+    }
+    
+    private var massUnit: MassUnit {
+        userProfile?.unit ?? .kg
+    }
+    
+    private var unitSymbol: String {
+        massUnit == .kg ? "kg" : "lbs"
+    }
+    
+    private func formatWeight(_ weight: Double) -> String {
+        let displayWeight = massUnit == .kg ? weight : weight * 2.20462
+        return String(format: "%.1f", displayWeight)
     }
     
     var body: some View {
@@ -32,7 +71,7 @@ struct WeightProgressView: View {
                 Spacer()
                 
                 Picker("Time Range", selection: $timeRange) {
-                    ForEach(TimeRange.allCases) { range in
+                    ForEach(WeightTimeRange.allCases) { range in
                         Text(range.rawValue).tag(range)
                     }
                 }
@@ -48,7 +87,7 @@ struct WeightProgressView: View {
                     HStack {
                         WeightStatCard(
                             title: "Current",
-                            value: String(format: "%.1f kg", latestWeight),
+                            value: "\(formatWeight(latestWeight)) \(unitSymbol)",
                             icon: "scalemass.fill",
                             color: .blue
                         )
@@ -63,7 +102,7 @@ struct WeightProgressView: View {
                         
                         WeightStatCard(
                             title: "Average",
-                            value: String(format: "%.1f kg", averageWeight),
+                            value: "\(formatWeight(averageWeight)) \(unitSymbol)",
                             icon: "chart.bar.fill",
                             color: .purple
                         )
@@ -74,20 +113,20 @@ struct WeightProgressView: View {
                         ForEach(weightLogs) { log in
                             LineMark(
                                 x: .value("Date", log.date),
-                                y: .value("Weight", log.weight)
+                                y: .value("Weight", massUnit == .kg ? log.weight : log.weight * 2.20462)
                             )
                             .foregroundStyle(Color.blue.gradient)
                             .interpolationMethod(.catmullRom)
                             
                             PointMark(
                                 x: .value("Date", log.date),
-                                y: .value("Weight", log.weight)
+                                y: .value("Weight", massUnit == .kg ? log.weight : log.weight * 2.20462)
                             )
                             .foregroundStyle(Color.blue)
                         }
                         
                         if weightLogs.count >= 3 {
-                            RuleMark(y: .value("Average", averageWeight))
+                            RuleMark(y: .value("Average", massUnit == .kg ? averageWeight : averageWeight * 2.20462))
                                 .foregroundStyle(.purple.opacity(0.3))
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
                                 .annotation(position: .top, alignment: .leading) {
@@ -100,7 +139,7 @@ struct WeightProgressView: View {
                     .frame(height: 220)
                     .chartYScale(domain: chartYDomain)
                     .chartXAxis {
-                        AxisMarks(values: .stride(by: dateStride)) { _ in
+                        AxisMarks { _ in
                             AxisGridLine()
                             AxisTick()
                             AxisValueLabel(format: .dateTime.month(.abbreviated).day())
@@ -112,8 +151,11 @@ struct WeightProgressView: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(16)
-        .onChange(of: timeRange) { _, newValue in
-            updateQuery(for: newValue)
+        .onAppear {
+            loadWeightLogs()
+        }
+        .onChange(of: timeRange) { _, _ in
+            loadWeightLogs()
         }
     }
     
@@ -133,8 +175,9 @@ struct WeightProgressView: View {
     
     private var weightChangeSummary: String {
         let absChange = abs(weightChange)
+        let displayChange = massUnit == .kg ? absChange : absChange * 2.20462
         let sign = weightChange < 0 ? "-" : "+"
-        return "\(sign)\(String(format: "%.1f", absChange)) kg"
+        return "\(sign)\(String(format: "%.1f", displayChange)) \(unitSymbol)"
     }
     
     private var averageWeight: Double {
@@ -144,38 +187,35 @@ struct WeightProgressView: View {
     }
     
     private var chartYDomain: ClosedRange<Double> {
-        guard !weightLogs.isEmpty else { return 60...80 }
+        guard !weightLogs.isEmpty else {
+            return massUnit == .kg ? 60...80 : 132...176
+        }
         
-        let weights = weightLogs.map { $0.weight }
-        if let min = weights.min(), let max = weights.max() {
-            let padding = max(2.0, (max - min) * 0.2)
-            return (min - padding)...(max + padding)
+        let weights = weightLogs.map { massUnit == .kg ? $0.weight : $0.weight * 2.20462 }
+        if let minWeight = weights.min(), let maxWeight = weights.max() {
+            let padding = Swift.max(massUnit == .kg ? 2.0 : 4.0, (maxWeight - minWeight) * 0.2)
+            return (minWeight - padding)...(maxWeight + padding)
         }
-        return 60...80
-    }
-    
-    private var dateStride: Calendar.Component {
-        switch timeRange {
-        case .week: return .day
-        case .month: return .weekOfMonth
-        case .threeMonths: return .month
-        case .sixMonths: return .month
-        case .year: return .month
-        }
+        return massUnit == .kg ? 60...80 : 132...176
     }
     
     // MARK: - Helper methods
     
-    private func updateQuery(for timeRange: TimeRange) {
-        let cutoffDate = timeRange.dateRange
-        let predicate = #Predicate<BodyWeightRecord> { log in
-            log.date >= cutoffDate
+    private func loadWeightLogs() {
+        do {
+            let cutoffDate = timeRange.dateRange
+            let descriptor = FetchDescriptor<BodyWeightRecord>(
+                predicate: #Predicate<BodyWeightRecord> { log in
+                    log.date >= cutoffDate
+                },
+                sortBy: [SortDescriptor(\.date)]
+            )
+            
+            weightLogs = try context.fetch(descriptor)
+        } catch {
+            print("Error loading weight logs: \(error)")
+            weightLogs = []
         }
-        
-        self._weightLogs = Query(
-            filter: predicate,
-            sort: [SortDescriptor(\.date)]
-        )
     }
 }
 
