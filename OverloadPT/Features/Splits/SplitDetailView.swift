@@ -12,6 +12,7 @@ import SwiftData
 /// and the order of template days (Push / Pull / …).
 struct SplitDetailView: View {
     @Bindable var split: WorkoutSplit        // SwiftData-aware
+    @State private var editMode = EditMode.inactive
 
     // MARK: UI
     var body: some View {
@@ -23,9 +24,8 @@ struct SplitDetailView: View {
             }
 
             // 2️⃣  editable day-template list
-            // SplitDetailView.swift - Update the day templates section
             Section("Day Templates") {
-                ForEach(split.days) { day in
+                ForEach(sortedDays) { day in
                     NavigationLink {
                         SplitDayExercisesView(splitDay: day)
                     } label: {
@@ -39,6 +39,7 @@ struct SplitDetailView: View {
                     }
                 }
                 .onMove(perform: moveDay)
+                .onDelete(perform: editMode == .active ? deleteDay : nil)
             }
 
             // 3️⃣  resolved calendar view
@@ -58,29 +59,66 @@ struct SplitDetailView: View {
         }
         .navigationTitle(split.name)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(trailing: EditButton())          // ← Edit mode
+        .environment(\.editMode, $editMode)
         .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                EditButton()
+            }
             ToolbarItem(placement: .bottomBar) {
                 Button("Reset Order") { resetToBalancedOrder() }
             }
         }
     }
 
+    // MARK: - Computed properties
+    private var sortedDays: [SplitDay] {
+        split.days.sorted { $0.order < $1.order }
+    }
+
     // MARK: - Edit helpers
     private func moveDay(from source: IndexSet, to destination: Int) {
-        var copy = split.days
-        copy.move(fromOffsets: source, toOffset: destination)
-        split.days = copy                               // persists order
+        withAnimation {
+            var sortedDays = self.sortedDays
+            sortedDays.move(fromOffsets: source, toOffset: destination)
+            
+            // Update the order property for all days
+            for (index, day) in sortedDays.enumerated() {
+                day.order = index
+            }
+        }
+    }
+
+    private func deleteDay(at offsets: IndexSet) {
+        withAnimation {
+            let sortedDays = self.sortedDays
+            for index in offsets {
+                if index < sortedDays.count {
+                    let dayToDelete = sortedDays[index]
+                    split.days.removeAll { $0.id == dayToDelete.id }
+                }
+            }
+            
+            // Reorder remaining days
+            let remainingDays = self.sortedDays
+            for (index, day) in remainingDays.enumerated() {
+                day.order = index
+            }
+        }
     }
 
     private func resetToBalancedOrder() {
-        split.days.sort { $0.title < $1.title }         // simple demo rule
+        withAnimation {
+            let sortedByTitle = split.days.sorted { $0.title < $1.title }
+            for (index, day) in sortedByTitle.enumerated() {
+                day.order = index
+            }
+        }
     }
 
     // MARK: - Computed schedule helpers
     private var resolvedSchedule: [(weekday: Int, day: SplitDay)] {
-        let sortedDays = split.days
-        let weekdays   = split.workoutDays.sorted()
+        let sortedDays = self.sortedDays
+        let weekdays = split.workoutDays.sorted()
         guard !sortedDays.isEmpty else { return [] }
 
         return weekdays.enumerated().map { idx, w in
@@ -94,29 +132,12 @@ struct SplitDetailView: View {
 
     private func musclesFor(title: String) -> String? {
         switch title.lowercased() {
-        case "push":  "Chest · Shoulders · Triceps"
-        case "pull":  "Back · Biceps"
-        case "legs":  "Quads · Hamstrings · Glutes"
-        case "upper": "Chest · Back · Shoulders · Arms"
-        case "lower": "Quads · Hamstrings · Glutes · Calves"
-        default:       nil
+        case "push":  return "Chest · Shoulders · Triceps"
+        case "pull":  return "Back · Biceps"
+        case "legs":  return "Quads · Hamstrings · Glutes"
+        case "upper": return "Chest · Back · Shoulders · Arms"
+        case "lower": return "Quads · Hamstrings · Glutes · Calves"
+        default:      return nil
         }
     }
-}
-
-#Preview {
-    // in-memory preview
-    let c = try! ModelContainer(
-        for: WorkoutSplit.self, SplitDay.self,
-        configurations: .init(isStoredInMemoryOnly: true)
-    )
-    let demo = WorkoutSplit(name: "Push / Pull / Legs")
-    demo.workoutDays = [1,3,5]
-    demo.days = [SplitDay(title: "Push"),
-                 SplitDay(title: "Pull"),
-                 SplitDay(title: "Legs")]
-    c.mainContext.insert(demo)
-
-    return NavigationStack { SplitDetailView(split: demo) }
-        .modelContainer(c)
 }
