@@ -1,3 +1,11 @@
+//
+//  TimeRange.swift
+//  OverloadPT
+//
+//  Created by Suleyman Kiani on 2025-07-14.
+//
+
+
 // Create a new file: Models/TimeRange.swift
 import Foundation
 
